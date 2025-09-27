@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: LearningHub
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: LearningHub
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # If you need Workbench/DBeaver access, uncomment:
+    # ports:
+    #   - "3307:3306"
+
+  backend:
+    build:
+      context: ./LearningHub_bk
+      dockerfile: dockerfile.one   # make sure the file exists (or rename to Dockerfile)
+    container_name: backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/LearningHub?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    ports:
+      - "8083:8081"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./learninghubf
+      dockerfile: dockerfile.one   # same here, use correct filename
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  mysql_data: {}
